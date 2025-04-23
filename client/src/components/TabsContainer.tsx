@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import FileUploader from './FileUploader';
 import TransformResult from './TransformResult';
@@ -7,9 +7,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { RefreshCwIcon, Diff, ArrowRight } from 'lucide-react';
+import { RefreshCwIcon, Diff, ArrowRight, CloudIcon, WifiIcon, WifiOffIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { convertToEpcis20Xml, convertToJsonLd } from '@/lib/api';
+import { 
+  convertToEpcis20Xml, 
+  convertToJsonLd,
+  convertToEpcis20XmlViaOpenEpcis,
+  convertToJsonLdViaOpenEpcis,
+  convertFrom12ToJsonLdViaOpenEpcis,
+  testOpenEpcisConnection
+} from '@/lib/api';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from "@/components/ui/badge";
 import type { StatusMessage, XmlTransformOptions, JsonLdTransformOptions } from '@shared/schema';
 import { nanoid } from 'nanoid';
 
@@ -42,7 +51,65 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
   const [jsonProcessing, setJsonProcessing] = useState(false);
   const [useXmlResultAsInput, setUseXmlResultAsInput] = useState(false);
   
+  // OpenEPCIS API state
+  const [openEpcisApiStatus, setOpenEpcisApiStatus] = useState<'loading' | 'connected' | 'disconnected'>('loading');
+  const [openEpcisXmlFile, setOpenEpcisXmlFile] = useState<File | null>(null);
+  const [openEpcisXmlContent, setOpenEpcisXmlContent] = useState<string | null>(null);
+  const [openEpcisResult, setOpenEpcisResult] = useState<string | null>(null);
+  const [openEpcisProcessing, setOpenEpcisProcessing] = useState(false);
+  const [openEpcisMode, setOpenEpcisMode] = useState<'xml12-to-xml20' | 'xml20-to-jsonld' | 'xml12-to-jsonld'>('xml12-to-xml20');
+  
   const { toast } = useToast();
+  
+  // Check OpenEPCIS API connection when the tab is selected
+  useEffect(() => {
+    if (activeTab === 'openepcis') {
+      const checkConnection = async () => {
+        setOpenEpcisApiStatus('loading');
+        try {
+          await testOpenEpcisConnection();
+          setOpenEpcisApiStatus('connected');
+          toast({
+            title: 'OpenEPCIS API Connected',
+            description: 'Successfully connected to OpenEPCIS API endpoints',
+          });
+        } catch (error) {
+          setOpenEpcisApiStatus('disconnected');
+          toast({
+            title: 'OpenEPCIS API Unavailable',
+            description: 'Could not connect to OpenEPCIS API. Using local implementation.',
+            variant: 'destructive'
+          });
+        }
+      };
+      
+      checkConnection();
+    }
+  }, [activeTab, toast]);
+  
+  // Handle OpenEPCIS file selection
+  const handleOpenEpcisFileSelect = async (file: File) => {
+    try {
+      const content = await readFileAsText(file);
+      setOpenEpcisXmlFile(file);
+      setOpenEpcisXmlContent(content);
+      setOpenEpcisResult(null); // Clear previous results
+      
+      addStatusMessage({
+        id: nanoid(),
+        type: 'info',
+        title: `File "${file.name}" selected for OpenEPCIS API`,
+        description: 'Ready for transformation via OpenEPCIS API',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      toast({
+        title: 'File Read Error',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
+    }
+  };
   
   // Handle XML file selection
   const handleXmlFileSelect = async (file: File) => {
@@ -241,6 +308,13 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
               className="px-6 py-4 font-medium text-sm data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
             >
               EPCIS 2.0 XML to JSON-LD
+            </TabsTrigger>
+            <TabsTrigger 
+              value="openepcis" 
+              className="px-6 py-4 font-medium text-sm data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
+            >
+              <CloudIcon className="w-4 h-4 mr-1 inline" />
+              OpenEPCIS API
             </TabsTrigger>
             <TabsTrigger 
               value="module" 

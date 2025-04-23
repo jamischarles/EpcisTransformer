@@ -1,8 +1,10 @@
 import { apiRequest } from './queryClient';
 import type { XmlTransformOptions, JsonLdTransformOptions } from '@shared/schema';
 
+// Local implementations
+
 /**
- * Converts EPCIS 1.2 XML to EPCIS 2.0 XML
+ * Converts EPCIS 1.2 XML to EPCIS 2.0 XML using local implementation
  */
 export async function convertToEpcis20Xml(xml: string, options?: XmlTransformOptions): Promise<string> {
   const response = await apiRequest('POST', '/api/convert-to-epcis20-xml', { xml, options });
@@ -11,10 +13,48 @@ export async function convertToEpcis20Xml(xml: string, options?: XmlTransformOpt
 }
 
 /**
- * Converts EPCIS 2.0 XML to JSON-LD format
+ * Converts EPCIS 2.0 XML to JSON-LD format using local implementation
  */
 export async function convertToJsonLd(xml: string, options?: JsonLdTransformOptions): Promise<string> {
   const response = await apiRequest('POST', '/api/convert-to-jsonld', { xml, options });
+  const data = await response.json();
+  return data.result;
+}
+
+// OpenEPCIS API implementations
+
+/**
+ * Tests the connection to the OpenEPCIS API
+ */
+export async function testOpenEpcisConnection(): Promise<{ status: string; message: string }> {
+  const response = await apiRequest('GET', '/api/openepcis/test-connection');
+  const data = await response.json();
+  return data;
+}
+
+/**
+ * Converts EPCIS 1.2 XML to EPCIS 2.0 XML using OpenEPCIS API
+ */
+export async function convertToEpcis20XmlViaOpenEpcis(xml: string, options?: XmlTransformOptions): Promise<string> {
+  const response = await apiRequest('POST', '/api/openepcis/convert-to-epcis20-xml', { xml, options });
+  const data = await response.json();
+  return data.result;
+}
+
+/**
+ * Converts EPCIS 2.0 XML to JSON-LD format using OpenEPCIS API
+ */
+export async function convertToJsonLdViaOpenEpcis(xml: string, options?: JsonLdTransformOptions): Promise<string> {
+  const response = await apiRequest('POST', '/api/openepcis/convert-to-jsonld', { xml, options });
+  const data = await response.json();
+  return data.result;
+}
+
+/**
+ * Converts EPCIS 1.2 XML directly to JSON-LD using OpenEPCIS API
+ */
+export async function convertFrom12ToJsonLdViaOpenEpcis(xml: string, options?: JsonLdTransformOptions): Promise<string> {
+  const response = await apiRequest('POST', '/api/openepcis/convert-from-12-to-jsonld', { xml, options });
   const data = await response.json();
   return data.result;
 }
