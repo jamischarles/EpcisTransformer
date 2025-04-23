@@ -1,6 +1,7 @@
 import { convertToEpcis20Xml, convertToEpcis20XmlSync } from './xml-converter';
 import { convertToJsonLd, convertToJsonLdSync } from './json-converter';
 import { ValidationError, TransformationError } from './utils';
+import { OpenEpcisClient, openEpcisClient } from './openEpcisClient';
 import type { XmlTransformOptions, JsonLdTransformOptions } from '@shared/schema';
 
 /**
@@ -9,10 +10,17 @@ import type { XmlTransformOptions, JsonLdTransformOptions } from '@shared/schema
  * A Node.js module for converting EPCIS 1.2 XML to EPCIS 2.0 XML and JSON-LD formats
  */
 export {
+  // Core conversion functions
   convertToEpcis20Xml,
   convertToEpcis20XmlSync,
   convertToJsonLd,
   convertToJsonLdSync,
+  
+  // OpenEPCIS API client
+  OpenEpcisClient,
+  openEpcisClient,
+  
+  // Error types
   ValidationError,
   TransformationError
 };
@@ -55,5 +63,11 @@ export default {
    * @param options - Optional configuration object
    * @returns JSON-LD string
    */
-  convertToJsonLdSync
+  convertToJsonLdSync,
+
+  /**
+   * The OpenEPCIS API client
+   * Provides access to OpenEPCIS API endpoints (tools.openepcis.io)
+   */
+  openEpcisApi: openEpcisClient
 };
