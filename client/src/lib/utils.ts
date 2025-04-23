@@ -1,44 +1,41 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import * as diffLib from 'diff';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 /**
- * Generates a basic diff between two text strings
+ * Generates a more accurate diff between two text strings using the diff library
  * @param oldText The original text
  * @param newText The modified text
  * @returns An array of diff objects with type and value
  */
 export function generateDiff(oldText: string, newText: string) {
-  // Split the texts into lines
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
-  
-  // Simple diff algorithm (line by line comparison)
+  // Create the patch using the diff library
   const diffResult: Array<{type: 'added' | 'removed' | 'unchanged', value: string}> = [];
   
-  // Find the maximum length between both arrays
-  const maxLen = Math.max(oldLines.length, newLines.length);
+  // For XML files, we need to be more careful about how we split the text
+  // First check if this is likely XML content
+  const isXml = oldText.trim().startsWith('<?xml') || newText.trim().startsWith('<?xml');
   
-  for (let i = 0; i < maxLen; i++) {
-    const oldLine = i < oldLines.length ? oldLines[i] : null;
-    const newLine = i < newLines.length ? newLines[i] : null;
-    
-    if (oldLine === null) {
-      // Line was added
-      diffResult.push({ type: 'added', value: newLine! });
-    } else if (newLine === null) {
-      // Line was removed
-      diffResult.push({ type: 'removed', value: oldLine });
-    } else if (oldLine !== newLine) {
-      // Line was changed - show as removed and added
-      diffResult.push({ type: 'removed', value: oldLine });
-      diffResult.push({ type: 'added', value: newLine });
+  // Use appropriate diff strategy based on content type
+  const changes = isXml
+    ? diffLib.diffLines(oldText, newText, {
+        newlineIsToken: true,
+        ignoreWhitespace: false
+      })
+    : diffLib.diffLines(oldText, newText);
+  
+  // Convert the diff library format to our format
+  for (const part of changes) {
+    if (part.added) {
+      diffResult.push({ type: 'added', value: part.value });
+    } else if (part.removed) {
+      diffResult.push({ type: 'removed', value: part.value });
     } else {
-      // Line is unchanged
-      diffResult.push({ type: 'unchanged', value: oldLine });
+      diffResult.push({ type: 'unchanged', value: part.value });
     }
   }
   

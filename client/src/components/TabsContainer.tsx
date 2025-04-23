@@ -322,21 +322,23 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
                     Show diff view (before/after)
                   </Label>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setActiveTab('json');
-                    setUseXmlResultAsInput(true);
-                    toast({
-                      title: 'Ready for JSON-LD conversion',
-                      description: 'The XML result will be used as input for the JSON-LD conversion',
-                    });
-                  }}
-                >
-                  <ArrowRight className="w-4 h-4 mr-1" />
-                  Use as input for JSON-LD
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setActiveTab('json');
+                      setUseXmlResultAsInput(true);
+                      toast({
+                        title: 'Ready for JSON-LD conversion',
+                        description: 'The XML result will be used as input for the JSON-LD conversion',
+                      });
+                    }}
+                  >
+                    <ArrowRight className="w-4 h-4 mr-1" />
+                    Use as input for JSON-LD
+                  </Button>
+                </div>
               </div>
               
               {showXmlDiff && xmlFileContent ? (
