@@ -5,9 +5,8 @@ import {
   convertToEpcis20Xml,
   convertToJsonLd
 } from '../server/epcis-transformer';
-import { openEpcisClient } from '../server/epcis-transformer/openEpcisClient';
 
-// Test files - focusing on the files that have valid XML
+// Test files
 const TEST_FILES = [
   'epcis_1.2.cardinal_health.xml',
   'epcis_1.2.sample.xml'
@@ -28,99 +27,128 @@ function normalizeString(str: string): string {
 }
 
 describe('EPCIS Transformer Tests', () => {
-  // Create output directory if it doesn't exist
-  beforeAll(async () => {
-    try {
-      await fs.mkdir('tests/output', { recursive: true });
-    } catch (error) {
-      console.log('Output directory already exists or cannot be created');
-    }
-  });
-
   describe('XML 1.2 to XML 2.0 Conversion', () => {
     for (const fileName of TEST_FILES) {
-      it(`converts ${fileName} from EPCIS 1.2 to EPCIS 2.0 XML with results matching OpenEPCIS API`, async () => {
-        // Read the test file
-        const filePath = path.join('attached_assets', fileName);
-        const xmlContent = await fs.readFile(filePath, 'utf-8');
+      it(`correctly converts ${fileName} from EPCIS 1.2 to EPCIS 2.0 XML`, async () => {
+        // Read the test file and fixture
+        const inputPath = path.join('attached_assets', fileName);
+        const fixturePath = path.join('tests/fixtures', `${fileName}.epcis20.xml`);
         
-        // Get results from both implementations
-        const localResult = await convertToEpcis20Xml(xmlContent, xmlOptions);
-        const apiResult = await openEpcisClient.convertToEpcis20Xml(xmlContent, xmlOptions);
+        const xmlContent = await fs.readFile(inputPath, 'utf-8');
+        const expectedOutput = await fs.readFile(fixturePath, 'utf-8');
         
-        // Save results to output directory
-        await fs.writeFile(`tests/output/${fileName}.local.2.0.xml`, localResult, 'utf-8');
-        await fs.writeFile(`tests/output/${fileName}.api.2.0.xml`, apiResult, 'utf-8');
+        // Run the transformation
+        const result = await convertToEpcis20Xml(xmlContent, xmlOptions);
         
         // Compare results (normalized to remove whitespace differences)
-        const normalizedLocal = normalizeString(localResult);
-        const normalizedApi = normalizeString(apiResult);
+        const normalizedResult = normalizeString(result);
+        const normalizedExpected = normalizeString(expectedOutput);
         
-        // Use a relaxed comparison - check if key XML elements exist in both
-        // This is more practical than exact matching due to slight differences in attribute ordering
-        expect(normalizedLocal).toContain('EPCISDocument');
-        expect(normalizedApi).toContain('EPCISDocument');
+        // Basic checks for expected elements
+        expect(normalizedResult.includes('EPCISDocument')).toBe(true);
+        expect(normalizedExpected.includes('EPCISDocument')).toBe(true);
         
-        // Check for key EPCIS 2.0 namespace
-        expect(normalizedLocal).toContain('https://ref.gs1.org/standards/epcis');
-        expect(normalizedApi).toContain('https://ref.gs1.org/standards/epcis');
-      }, 15000); // Increase timeout for API calls
+        // Check for additional characteristic elements of EPCIS events
+        expect(normalizedResult.includes('EventList')).toBe(true);
+        expect(normalizedExpected.includes('EventList')).toBe(true);
+        
+        // Check that both documents have the same key events
+        // This is a more practical check than exact string matching
+        ['ObjectEvent', 'AggregationEvent', 'TransactionEvent'].forEach(eventType => {
+          if (normalizedExpected.includes(eventType)) {
+            expect(normalizedResult.includes(eventType)).toBe(true);
+          }
+        });
+      });
     }
   });
 
   describe('XML 2.0 to JSON-LD Conversion', () => {
     for (const fileName of TEST_FILES) {
-      it(`converts ${fileName} from EPCIS 2.0 XML to JSON-LD with results matching OpenEPCIS API`, async () => {
-        // First convert to EPCIS 2.0 XML
-        const filePath = path.join('attached_assets', fileName);
-        const xmlContent = await fs.readFile(filePath, 'utf-8');
-        const xml20Content = await convertToEpcis20Xml(xmlContent, xmlOptions);
+      it(`correctly converts ${fileName} from EPCIS 2.0 XML to JSON-LD`, async () => {
+        // Read the test file and fixture
+        const inputPath = path.join('tests/fixtures', `${fileName}.epcis20.xml`);
+        const fixturePath = path.join('tests/fixtures', `${fileName}.jsonld`);
         
-        // Then convert to JSON-LD using both implementations
-        const localResult = await convertToJsonLd(xml20Content, jsonOptions);
-        const apiResult = await openEpcisClient.convertToJsonLd(xml20Content, jsonOptions);
+        const xmlContent = await fs.readFile(inputPath, 'utf-8');
+        const expectedOutput = await fs.readFile(fixturePath, 'utf-8');
         
-        // Save results to output directory
-        await fs.writeFile(`tests/output/${fileName}.local.jsonld`, localResult, 'utf-8');
-        await fs.writeFile(`tests/output/${fileName}.api.jsonld`, apiResult, 'utf-8');
+        // Run the transformation
+        const result = await convertToJsonLd(xmlContent, jsonOptions);
         
         // Parse JSON for more structured comparison
-        const localJson = JSON.parse(localResult);
-        const apiJson = JSON.parse(apiResult);
+        const resultJson = JSON.parse(result);
+        const expectedJson = JSON.parse(expectedOutput);
         
         // Check for key JSON-LD elements
-        expect(localJson['@context']).toBeDefined();
-        expect(apiJson['@context']).toBeDefined();
+        expect(resultJson['@context']).toBeDefined();
+        expect(expectedJson['@context']).toBeDefined();
         
         // Check for epcisDocument type
-        expect(localJson.type).toBe('EPCISDocument') || expect(localJson['@type']).toBe('EPCISDocument');
-        expect(apiJson.type).toBe('EPCISDocument') || expect(apiJson['@type']).toBe('EPCISDocument');
-      }, 15000); // Increase timeout for API calls
+        const resultHasCorrectType = (
+          resultJson.type === 'EPCISDocument' || 
+          (resultJson['@type'] && resultJson['@type'] === 'EPCISDocument')
+        );
+        const expectedHasCorrectType = (
+          expectedJson.type === 'EPCISDocument' || 
+          (expectedJson['@type'] && expectedJson['@type'] === 'EPCISDocument')
+        );
+        
+        expect(resultHasCorrectType).toBe(true);
+        expect(expectedHasCorrectType).toBe(true);
+        
+        // Check for events array
+        if (expectedJson.epcisBody?.eventList) {
+          expect(resultJson.epcisBody?.eventList).toBeDefined();
+          // If we want to check event counts:
+          expect(resultJson.epcisBody.eventList.length).toBe(expectedJson.epcisBody.eventList.length);
+        }
+      });
     }
   });
 
-  describe('Direct 1.2 to JSON-LD Conversion', () => {
+  describe('End-to-End: EPCIS 1.2 XML to JSON-LD Conversion', () => {
     for (const fileName of TEST_FILES) {
-      it(`converts ${fileName} directly from EPCIS 1.2 XML to JSON-LD`, async () => {
-        // Read the test file
-        const filePath = path.join('attached_assets', fileName);
-        const xmlContent = await fs.readFile(filePath, 'utf-8');
+      it(`correctly converts ${fileName} from EPCIS 1.2 XML to JSON-LD in sequence`, async () => {
+        // Read the test file and fixture
+        const inputPath = path.join('attached_assets', fileName);
+        const fixturePath = path.join('tests/fixtures', `${fileName}.direct.jsonld`);
         
-        // Get result from API (now using two-step process internally)
-        const apiResult = await openEpcisClient.convertFrom12ToJsonLd(xmlContent, jsonOptions);
+        const xmlContent = await fs.readFile(inputPath, 'utf-8');
+        const expectedOutput = await fs.readFile(fixturePath, 'utf-8');
         
-        // Save result to output directory
-        await fs.writeFile(`tests/output/${fileName}.direct.jsonld`, apiResult, 'utf-8');
+        // Run the transformations in sequence
+        const xml20Result = await convertToEpcis20Xml(xmlContent, xmlOptions);
+        const jsonLdResult = await convertToJsonLd(xml20Result, jsonOptions);
         
-        // Check that result is valid JSON
-        const apiJson = JSON.parse(apiResult);
+        // Parse JSON for more structured comparison
+        const resultJson = JSON.parse(jsonLdResult);
+        const expectedJson = JSON.parse(expectedOutput);
         
         // Check for key JSON-LD elements
-        expect(apiJson['@context']).toBeDefined();
+        expect(resultJson['@context']).toBeDefined();
+        expect(expectedJson['@context']).toBeDefined();
         
         // Check for epcisDocument type
-        expect(apiJson.type).toBe('EPCISDocument') || expect(apiJson['@type']).toBe('EPCISDocument');
-      }, 15000); // Increase timeout for API calls
+        const resultHasCorrectType = (
+          resultJson.type === 'EPCISDocument' || 
+          (resultJson['@type'] && resultJson['@type'] === 'EPCISDocument')
+        );
+        const expectedHasCorrectType = (
+          expectedJson.type === 'EPCISDocument' || 
+          (expectedJson['@type'] && expectedJson['@type'] === 'EPCISDocument')
+        );
+        
+        expect(resultHasCorrectType).toBe(true);
+        expect(expectedHasCorrectType).toBe(true);
+        
+        // Check for events array
+        if (expectedJson.epcisBody?.eventList) {
+          expect(resultJson.epcisBody?.eventList).toBeDefined();
+          // If we want to check event counts:
+          expect(resultJson.epcisBody.eventList.length).toBe(expectedJson.epcisBody.eventList.length);
+        }
+      });
     }
   });
 });
