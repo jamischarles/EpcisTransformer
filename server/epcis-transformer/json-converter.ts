@@ -56,20 +56,34 @@ export async function convertToJsonLd(
     jsonLd.schemaVersion = documentElement.getAttribute('schemaVersion') || '2.0';
     jsonLd.creationDate = documentElement.getAttribute('creationDate') || new Date().toISOString();
     
-    // Process the EPCISBody
-    const epcisBody = documentElement.getElementsByTagName('epcis:EPCISBody')[0] as XmlDomElement;
+    // Process the EPCISBody (or similar element)
+    const epcisBody = documentElement.getElementsByTagName('epcis:EPCISBody')[0] 
+      || documentElement.getElementsByTagName('EPCISBody')[0] as XmlDomElement;
+    
+    // Always create an epcisBody with eventList to match the expected OpenEPCIS structure
+    jsonLd.epcisBody = { eventList: [] };
+    
     if (epcisBody) {
-      jsonLd.epcisBody = { eventList: [] };
-      
       // Process EventList
-      const eventList = epcisBody.getElementsByTagName('epcis:EventList')[0] as XmlDomElement;
+      const eventList = epcisBody.getElementsByTagName('epcis:EventList')[0] 
+        || epcisBody.getElementsByTagName('EventList')[0] as XmlDomElement;
+      
       if (eventList) {
         // Process each type of event
         processEvents(eventList, 'epcis:ObjectEvent', jsonLd.epcisBody.eventList);
+        processEvents(eventList, 'ObjectEvent', jsonLd.epcisBody.eventList);
+        
         processEvents(eventList, 'epcis:AggregationEvent', jsonLd.epcisBody.eventList);
+        processEvents(eventList, 'AggregationEvent', jsonLd.epcisBody.eventList);
+        
         processEvents(eventList, 'epcis:TransactionEvent', jsonLd.epcisBody.eventList);
+        processEvents(eventList, 'TransactionEvent', jsonLd.epcisBody.eventList);
+        
         processEvents(eventList, 'epcis:TransformationEvent', jsonLd.epcisBody.eventList);
+        processEvents(eventList, 'TransformationEvent', jsonLd.epcisBody.eventList);
+        
         processEvents(eventList, 'epcis:AssociationEvent', jsonLd.epcisBody.eventList);
+        processEvents(eventList, 'AssociationEvent', jsonLd.epcisBody.eventList);
       }
     }
     
