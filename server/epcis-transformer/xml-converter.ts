@@ -49,14 +49,21 @@ export async function convertToEpcis20Xml(
     // Update root element namespace
     if (rootElement.namespaceURI === oldNamespace) {
       // Create a new document with the updated namespace
-      const newDoc = parser.parseFromString('<?xml version="1.0" encoding="UTF-8"?><epcis:EPCISDocument xmlns:epcis="' + newNamespace + '"></epcis:EPCISDocument>', 'application/xml');
+      const newXmlString = '<?xml version="1.0" encoding="UTF-8"?><epcis:EPCISDocument xmlns:epcis="' + newNamespace + '"></epcis:EPCISDocument>';
+      const newDoc = parser.parseFromString(newXmlString, 'application/xml');
+      
+      // Safety check for new document
       const newRoot = newDoc.documentElement;
+      if (!newRoot) {
+        throw new ValidationError('Failed to create new document with updated namespace');
+      }
       
       // Copy attributes from old root to new root
       for (let i = 0; i < rootElement.attributes.length; i++) {
         const attr = rootElement.attributes[i];
         if (attr.name === 'xmlns:epcis') {
-          newRoot.setAttribute(attr.name, newNamespace);
+          // Skip this attribute as we've already set it
+          continue;
         } else {
           newRoot.setAttribute(attr.name, attr.value);
         }
