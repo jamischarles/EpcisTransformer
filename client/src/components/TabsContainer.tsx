@@ -644,9 +644,9 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
             ) : (
               <Alert className="bg-amber-50 border-amber-200">
                 <WifiOffIcon className="h-4 w-4 text-amber-500 mr-2" />
-                <AlertTitle className="text-amber-700">OpenEPCIS API Unavailable</AlertTitle>
+                <AlertTitle className="text-amber-700">OpenEPCIS API Connection Issue</AlertTitle>
                 <AlertDescription className="text-amber-600">
-                  Could not connect to OpenEPCIS API. The application will fall back to local implementation.
+                  Could not connect to OpenEPCIS API status endpoint. Transformations will still be attempted.
                 </AlertDescription>
               </Alert>
             )}

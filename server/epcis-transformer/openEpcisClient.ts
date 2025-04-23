@@ -114,8 +114,8 @@ export class OpenEpcisClient {
    */
   async testConnection(): Promise<boolean> {
     try {
-      // Just try to access the base API endpoint
-      await axios.get(`${this.baseUrl}/convert`);
+      // For testing, just try to access the plain website
+      await axios.get('https://tools.openepcis.io');
       return true;
     } catch (unknown) {
       const error = unknown as Error;
