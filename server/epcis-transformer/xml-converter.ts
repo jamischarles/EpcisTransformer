@@ -49,8 +49,9 @@ export async function convertToEpcis20Xml(
         return result;
       } else if (result && typeof result === 'object') {
         // Some versions return an object with a 'principalResult' property
-        if ('principalResult' in result && typeof result.principalResult === 'string') {
-          return result.principalResult;
+        const resultObj = result as any;
+        if ('principalResult' in resultObj && typeof resultObj.principalResult === 'string') {
+          return resultObj.principalResult;
         }
         
         // Saxon-JS 2.x might return an object that can be stringified
