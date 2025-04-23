@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="2.0" creationDate="2022-06-27T06:30:05Z"><EPCISBody><EventList><ObjectEvent xmlns:cbvmda="urn:epcglobal:cbv:mda">
+   <eventTime>2022-06-25T03:00:01Z</eventTime>
+   <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+   <epcList>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001001</epc>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001002</epc>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001003</epc>
+      <epc>https://id.gs1.org/01/10368000123455/21/22222223333</epc>
+   </epcList>
+   <action>ADD</action>
+   <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+   <disposition>urn:epcglobal:cbv:disp:active</disposition>
+   <readPoint>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </readPoint>
+   <bizLocation>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </bizLocation>
+   <cbvmda:itemExpirationDate>2025-01-31</cbvmda:itemExpirationDate>
+   <cbvmda:lotNumber>LOT123</cbvmda:lotNumber>
+</ObjectEvent><ObjectEvent xmlns:cbvmda="urn:epcglobal:cbv:mda">
+   <eventTime>2022-06-25T03:00:02Z</eventTime>
+   <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+   <epcList>
+      <epc>https://id.gs1.org/00/004789012345678903</epc>
+   </epcList>
+   <action>ADD</action>
+   <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+   <disposition>urn:epcglobal:cbv:disp:active</disposition>
+   <readPoint>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </readPoint>
+   <bizLocation>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </bizLocation>
+</ObjectEvent><AggregationEvent xmlns:cbvmda="urn:epcglobal:cbv:mda">
+   <eventTime>2022-06-25T04:00:00Z</eventTime>
+   <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+   <parentID>https://id.gs1.org/01/10368000123455/21/22222223333</parentID>
+   <childEPCs>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001001</epc>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001002</epc>
+      <epc>https://id.gs1.org/01/00368000123458/21/10000001003</epc>
+   </childEPCs>
+   <action>ADD</action>
+   <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+   <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+   <readPoint>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </readPoint>
+   <bizLocation>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </bizLocation>
+</AggregationEvent><AggregationEvent xmlns:cbvmda="urn:epcglobal:cbv:mda">
+   <eventTime>2022-06-25T04:01:00Z</eventTime>
+   <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+   <parentID>https://id.gs1.org/00/004789012345678903</parentID>
+   <childEPCs>
+      <epc>https://id.gs1.org/01/10368000123455/21/22222223333</epc>
+   </childEPCs>
+   <action>ADD</action>
+   <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+   <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+   <readPoint>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </readPoint>
+   <bizLocation>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </bizLocation>
+</AggregationEvent><ObjectEvent xmlns:cbvmda="urn:epcglobal:cbv:mda">
+   <eventTime>2022-06-27T06:30:05Z</eventTime>
+   <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+   <epcList>
+      <epc>https://id.gs1.org/00/004789012345678903</epc>
+   </epcList>
+   <action>OBSERVE</action>
+   <bizStep>urn:epcglobal:cbv:bizstep:shipping</bizStep>
+   <disposition>urn:epcglobal:cbv:disp:in_transit</disposition>
+   <readPoint>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </readPoint>
+   <bizLocation>
+      <id>https://id.gs1.org/414/0478901112229</id>
+   </bizLocation>
+   <bizTransactionList>
+      <bizTransaction type="urn:epcglobal:cbv:btt:inv">urn:epcglobal:cbv:bt:0361230456896:INV12345</bizTransaction>
+      <bizTransaction type="urn:epcglobal:cbv:btt:desadv">urn:epcglobal:cbv:bt:0361230456896:ASN12345</bizTransaction>
+      <bizTransaction type="urn:epcglobal:cbv:btt:po">urn:epcglobal:cbv:bt:0087701000003:0108763332</bizTransaction>
+   </bizTransactionList>
+   <sourceList>
+      <source type="urn:epcglobal:cbv:sdt:owning_party">https://id.gs1.org/414/0361230456891</source>
+      <source type="urn:epcglobal:cbv:sdt:locaton">https://id.gs1.org/414/0478901112229</source>
+   </sourceList>
+   <destinationList>
+      <destination type="urn:epcglobal:cbv:sdt:owning_party">https://id.gs1.org/414/0087701000003</destination>
+      <destination type="urn:epcglobal:cbv:sdt:location">https://id.gs1.org/414/0716163011226</destination>
+   </destinationList>
+</ObjectEvent></EventList></EPCISBody></epcis:EPCISDocument>
