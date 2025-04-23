@@ -30,21 +30,39 @@ export async function convertToEpcis20Xml(
     const xsltContent = await fs.readFile(xslFilePath, 'utf-8');
     
     // Perform the XSLT transformation
-    const result = SaxonJS.transform({
-      stylesheetText: xsltContent,
-      sourceText: xml,
-      destination: 'serialized',
-      // Saxon-JS allows passing parameters to the XSLT
-      // We can pass the preserveComments option to the transform if needed
-      // stylesheetParams: { preserveComments: options.preserveComments }
-    });
-    
-    // The result should be a string
-    if (typeof result !== 'string') {
+    try {
+      console.log('Starting XSLT transformation with Saxon-JS');
+      
+      // The transform function in Saxon-JS returns an object when destination is 'serialized'
+      const result = SaxonJS.transform({
+        stylesheetText: xsltContent,
+        sourceText: xml,
+        destination: 'serialized',
+        // Saxon-JS allows passing parameters to the XSLT
+        stylesheetParams: { preserveComments: options.preserveComments }
+      });
+      
+      console.log('Transformation result type:', typeof result);
+      
+      // Handle different result formats based on Saxon-JS versions
+      if (typeof result === 'string') {
+        return result;
+      } else if (result && typeof result === 'object') {
+        // Some versions return an object with a 'principalResult' property
+        if ('principalResult' in result && typeof result.principalResult === 'string') {
+          return result.principalResult;
+        }
+        
+        // Saxon-JS 2.x might return an object that can be stringified
+        console.log('Attempting to convert result object to string');
+        return String(result);
+      }
+      
       throw new TransformationError('Unexpected transformation result format');
+    } catch (error) {
+      console.error('Error in Saxon-JS transform:', error);
+      throw new TransformationError(`XSLT transformation failed: ${(error as Error).message}`);
     }
-    
-    return result;
   } catch (error) {
     // Re-throw validation and transformation errors as they are already handled
     if (error instanceof ValidationError || error instanceof TransformationError) {

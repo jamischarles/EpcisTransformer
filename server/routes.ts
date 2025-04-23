@@ -34,18 +34,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { xml, options = { validateXml: false, preserveComments: false } } = parseResult.data;
       
+      console.log('Starting XML transformation');
+      
       // Perform the conversion
       const result = await convertToEpcis20Xml(xml, options);
+      
+      console.log('XML transformation successful');
       
       // Return the result
       res.json({ result });
     } catch (error) {
+      console.error('Error in convert-to-epcis20-xml endpoint:', error);
       if (error instanceof ValidationError) {
         res.status(400).json({ message: error.message, code: error.code });
       } else if (error instanceof TransformationError) {
         res.status(500).json({ message: error.message, code: error.code });
       } else {
-        res.status(500).json({ message: "An unexpected error occurred" });
+        res.status(500).json({ 
+          message: "An unexpected error occurred", 
+          details: error instanceof Error ? error.message : String(error) 
+        });
       }
     }
   });
@@ -70,18 +78,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { xml, options = { prettyPrint: true, includeContext: true } } = parseResult.data;
       
+      console.log('Starting JSON-LD transformation');
+      
       // Perform the conversion
       const result = await convertToJsonLd(xml, options);
+      
+      console.log('JSON-LD transformation successful');
       
       // Return the result
       res.json({ result });
     } catch (error) {
+      console.error('Error in convert-to-jsonld endpoint:', error);
       if (error instanceof ValidationError) {
         res.status(400).json({ message: error.message, code: error.code });
       } else if (error instanceof TransformationError) {
         res.status(500).json({ message: error.message, code: error.code });
       } else {
-        res.status(500).json({ message: "An unexpected error occurred" });
+        res.status(500).json({ 
+          message: "An unexpected error occurred", 
+          details: error instanceof Error ? error.message : String(error) 
+        });
       }
     }
   });
