@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<epcis:EPCISDocument xmlns:cbvmda="urn:epcglobal:cbv:mda" xmlns:epcis="urn:epcglobal:epcis:xsd:1"
+  xmlns:sbdh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:gs1ushc="http://epcis.gs1us.org/hc/ns"
+  schemaVersion="1.2" creationDate="2012-03-25T17:10:16Z">
+<EPCISHeader>
+  <sbdh:StandardBusinessDocumentHeader>
+    <sbdh:HeaderVersion>1.0</sbdh:HeaderVersion>
+    <sbdh:Sender>
+      <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:030001.111124.0</sbdh:Identifier>
+    </sbdh:Sender>
+    <sbdh:Receiver>
+      <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:039999.999929.0</sbdh:Identifier>
+    </sbdh:Receiver>
+    <sbdh:DocumentIdentification>
+      <sbdh:Standard>EPCglobal</sbdh:Standard>
+      <sbdh:TypeVersion>1.0</sbdh:TypeVersion>
+      <sbdh:InstanceIdentifier>urn:uuid:8bcd79de-c9fc-49a9-ab69-52890a8a0f04</sbdh:InstanceIdentifier>
+      <sbdh:Type>Events</sbdh:Type>
+      <sbdh:CreationDateAndTime>2018-01-15T08:36:05.732000-08:00</sbdh:CreationDateAndTime>
+    </sbdh:DocumentIdentification>
+  </sbdh:StandardBusinessDocumentHeader>
+  <extension>
+    <EPCISMasterData>
+      <VocabularyList>
+        <Vocabulary type="urn:epcglobal:epcis:vtype:EPCClass">
+          <VocabularyElementList>
+            <VocabularyElement id="urn:epc:idpat:sgtin:0355154.094495.*">
+              <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">05515494495</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">FDA_NDC_11</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">EpcistraiTEM</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">GS1 Pharma LLC</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#dosageFormType">PILL</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#strengthDescription">100mg</attribute>
+              <attribute id="urn:epcglobal:cbv:mda#netContentDescription">500 pills</attribute>
+            </VocabularyElement>
+          </VocabularyElementList>
+        </Vocabulary>
+      </VocabularyList>
+    </EPCISMasterData>
+  </extension>
+</EPCISHeader>
+<EPCISBody>
+  <EventList>
+    <ObjectEvent>
+      <eventTime>2012-03-25T17:10:16Z</eventTime>
+      <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+      <epcList>
+        <epc>urn:epc:id:sgtin:0355154.094495.40095247428196</epc>
+        <epc>urn:epc:id:sgtin:0355154.094495.40023811077021</epc>
+      </epcList>
+      <action>ADD</action>
+      <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+      <disposition>urn:epcglobal:cbv:disp:active</disposition>
+      <readPoint>
+        <id>urn:epc:id:sgln:030001.111124.0</id>
+      </readPoint>
+      <bizLocation>
+        <id>urn:epc:id:sgln:030001.111124.0</id>
+      </bizLocation>
+      <extension>
+        <ilmd>
+          <cbvmda:lotNumber>PR456</cbvmda:lotNumber>
+          <cbvmda:itemExpirationDate>2015-03-15</cbvmda:itemExpirationDate>
+        </ilmd>
+      </extension>
+    </ObjectEvent>
+  </EventList>
+</EPCISBody>
+</epcis:EPCISDocument>
