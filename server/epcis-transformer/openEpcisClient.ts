@@ -76,34 +76,22 @@ export class OpenEpcisClient {
   
   /**
    * Convert EPCIS 1.2 XML directly to JSON-LD using OpenEPCIS API
+   * Since the direct endpoint may not be available, this performs a two-step conversion
    * @param xml EPCIS 1.2 XML content
    * @param options Transformation options
    * @returns Promise resolving to JSON-LD string
    */
   async convertFrom12ToJsonLd(xml: string, options: JsonLdTransformOptions = { prettyPrint: true, includeContext: true }): Promise<string> {
     try {
-      // Using the direct conversion endpoint
-      const response = await axios.post(
-        `${this.baseUrl}/convert/json/1.2`, 
-        xml, 
-        {
-          headers: {
-            'Content-Type': 'application/xml'
-          }
-        }
-      );
+      // First, convert from 1.2 to 2.0 XML
+      console.log('Performing two-step conversion for 1.2 to JSON-LD');
+      const epcis20Xml = await this.convertToEpcis20Xml(xml);
       
-      // Format JSON response based on options
-      const jsonResponse = response.data;
-      
-      if (options.prettyPrint) {
-        return JSON.stringify(jsonResponse, null, 2);
-      }
-      
-      return JSON.stringify(jsonResponse);
+      // Then convert from 2.0 XML to JSON-LD
+      return this.convertToJsonLd(epcis20Xml, options);
     } catch (unknown) {
       const error = unknown as Error;
-      console.error('OpenEPCIS API Error:', error.message || 'Unknown error');
+      console.error('OpenEPCIS API Error during two-step conversion:', error.message || 'Unknown error');
       throw new TransformationError(`OpenEPCIS API Error: ${error.message || 'Unknown error'}`);
     }
   }
