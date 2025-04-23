@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import FileUploader from './FileUploader';
 import TransformResult from './TransformResult';
+import DiffView from './DiffView';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { RefreshCwIcon } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { RefreshCwIcon, Diff, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { convertToEpcis20Xml, convertToJsonLd } from '@/lib/api';
 import type { StatusMessage, XmlTransformOptions, JsonLdTransformOptions } from '@shared/schema';
@@ -20,51 +22,80 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
   
   // XML transformation state
   const [xmlFile, setXmlFile] = useState<File | null>(null);
+  const [xmlFileContent, setXmlFileContent] = useState<string | null>(null);
   const [xmlOptions, setXmlOptions] = useState<XmlTransformOptions>({
     validateXml: false,
     preserveComments: false
   });
   const [xmlResult, setXmlResult] = useState<string | null>(null);
   const [xmlProcessing, setXmlProcessing] = useState(false);
+  const [showXmlDiff, setShowXmlDiff] = useState(false);
   
   // JSON-LD transformation state
   const [jsonFile, setJsonFile] = useState<File | null>(null);
+  const [jsonFileContent, setJsonFileContent] = useState<string | null>(null);
   const [jsonOptions, setJsonOptions] = useState<JsonLdTransformOptions>({
     prettyPrint: true,
     includeContext: true
   });
   const [jsonResult, setJsonResult] = useState<string | null>(null);
   const [jsonProcessing, setJsonProcessing] = useState(false);
+  const [useXmlResultAsInput, setUseXmlResultAsInput] = useState(false);
   
   const { toast } = useToast();
   
   // Handle XML file selection
-  const handleXmlFileSelect = (file: File) => {
-    setXmlFile(file);
-    addStatusMessage({
-      id: nanoid(),
-      type: 'info',
-      title: `File "${file.name}" selected`,
-      description: 'Ready for XML transformation',
-      timestamp: new Date().toISOString()
-    });
+  const handleXmlFileSelect = async (file: File) => {
+    try {
+      const content = await readFileAsText(file);
+      setXmlFile(file);
+      setXmlFileContent(content);
+      setXmlResult(null); // Clear previous results
+      setShowXmlDiff(false);
+      
+      addStatusMessage({
+        id: nanoid(),
+        type: 'info',
+        title: `File "${file.name}" selected`,
+        description: 'Ready for XML transformation',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      toast({
+        title: 'File Read Error',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
+    }
   };
   
   // Handle JSON file selection
-  const handleJsonFileSelect = (file: File) => {
-    setJsonFile(file);
-    addStatusMessage({
-      id: nanoid(),
-      type: 'info',
-      title: `File "${file.name}" selected`,
-      description: 'Ready for JSON-LD transformation',
-      timestamp: new Date().toISOString()
-    });
+  const handleJsonFileSelect = async (file: File) => {
+    try {
+      const content = await readFileAsText(file);
+      setJsonFile(file);
+      setJsonFileContent(content);
+      setJsonResult(null); // Clear previous results
+      
+      addStatusMessage({
+        id: nanoid(),
+        type: 'info',
+        title: `File "${file.name}" selected`,
+        description: 'Ready for JSON-LD transformation',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      toast({
+        title: 'File Read Error',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
+    }
   };
   
   // Perform XML transformation
   const handleXmlTransform = async () => {
-    if (!xmlFile) return;
+    if (!xmlFile || !xmlFileContent) return;
     
     setXmlProcessing(true);
     const statusId = nanoid();
@@ -78,11 +109,8 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
     });
     
     try {
-      // Read file contents
-      const fileContent = await readFileAsText(xmlFile);
-      
-      // Perform transformation
-      const result = await convertToEpcis20Xml(fileContent, xmlOptions);
+      // Perform transformation using the stored file content
+      const result = await convertToEpcis20Xml(xmlFileContent, xmlOptions);
       
       // Update status and set result
       addStatusMessage({
@@ -116,25 +144,46 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
   
   // Perform JSON-LD transformation
   const handleJsonTransform = async () => {
-    if (!jsonFile) return;
+    // Determine what content to use as input
+    const xmlInputContent = useXmlResultAsInput && xmlResult 
+      ? xmlResult 
+      : jsonFileContent;
+    
+    if (!xmlInputContent) {
+      if (useXmlResultAsInput) {
+        toast({
+          title: 'Missing XML Result',
+          description: 'You need to first transform EPCIS 1.2 to 2.0 XML on the previous tab',
+          variant: 'destructive'
+        });
+      } else if (!jsonFile) {
+        toast({
+          title: 'Missing Input',
+          description: 'Please upload an EPCIS 2.0 XML file',
+          variant: 'destructive'
+        });
+      }
+      return;
+    }
     
     setJsonProcessing(true);
     const statusId = nanoid();
+    
+    const sourceDescription = useXmlResultAsInput 
+      ? 'from previously generated XML'
+      : 'from uploaded file';
     
     addStatusMessage({
       id: statusId,
       type: 'processing',
       title: 'Processing JSON-LD transformation',
-      description: 'Converting EPCIS 2.0 XML to JSON-LD',
+      description: `Converting EPCIS 2.0 XML to JSON-LD ${sourceDescription}`,
       timestamp: new Date().toISOString()
     });
     
-    try {
-      // Read file contents
-      const fileContent = await readFileAsText(jsonFile);
-      
+    try {  
       // Perform transformation
-      const result = await convertToJsonLd(fileContent, jsonOptions);
+      const result = await convertToJsonLd(xmlInputContent, jsonOptions);
       
       // Update status and set result
       addStatusMessage({
@@ -260,12 +309,51 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
           </Button>
           
           {xmlResult && (
-            <TransformResult 
-              content={xmlResult} 
-              fileName="epcis20.xml" 
-              contentType="application/xml" 
-              language="xml"
-            />
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="xml-diff-switch"
+                    checked={showXmlDiff}
+                    onCheckedChange={setShowXmlDiff}
+                  />
+                  <Label htmlFor="xml-diff-switch" className="text-sm font-medium">
+                    <Diff className="inline-block w-4 h-4 mr-1" />
+                    Show diff view (before/after)
+                  </Label>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveTab('json');
+                    setUseXmlResultAsInput(true);
+                    toast({
+                      title: 'Ready for JSON-LD conversion',
+                      description: 'The XML result will be used as input for the JSON-LD conversion',
+                    });
+                  }}
+                >
+                  <ArrowRight className="w-4 h-4 mr-1" />
+                  Use as input for JSON-LD
+                </Button>
+              </div>
+              
+              {showXmlDiff && xmlFileContent ? (
+                <DiffView 
+                  originalText={xmlFileContent}
+                  transformedText={xmlResult}
+                  height="400px"
+                />
+              ) : (
+                <TransformResult 
+                  content={xmlResult} 
+                  fileName="epcis20.xml" 
+                  contentType="application/xml" 
+                  language="xml"
+                />
+              )}
+            </div>
           )}
         </TabsContent>
         
@@ -273,12 +361,46 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
         <TabsContent value="json" className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Transform EPCIS 2.0 XML to JSON-LD</h3>
           
-          <FileUploader 
-            onFileSelect={handleJsonFileSelect}
-            accept=".xml"
-            title="Upload EPCIS 2.0 XML File"
-            description="File should be a valid EPCIS 2.0 XML document"
-          />
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="use-xml-result-switch"
+                checked={useXmlResultAsInput}
+                onCheckedChange={(checked) => {
+                  setUseXmlResultAsInput(checked);
+                  if (checked && !xmlResult) {
+                    toast({
+                      title: 'No XML Result Available',
+                      description: 'Generate XML in the previous tab first',
+                      variant: 'destructive'
+                    });
+                  }
+                }}
+              />
+              <Label htmlFor="use-xml-result-switch" className="text-sm font-medium">
+                <ArrowRight className="inline-block w-4 h-4 mr-1" />
+                Use XML result from previous tab
+              </Label>
+            </div>
+          </div>
+          
+          {!useXmlResultAsInput && (
+            <FileUploader 
+              onFileSelect={handleJsonFileSelect}
+              accept=".xml"
+              title="Upload EPCIS 2.0 XML File"
+              description="File should be a valid EPCIS 2.0 XML document"
+            />
+          )}
+          
+          {useXmlResultAsInput && xmlResult && (
+            <div className="mb-6 border border-dashed border-gray-300 rounded-md p-4 bg-gray-50">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Using XML Result as Input</h4>
+              <p className="text-sm text-gray-600">
+                Using EPCIS 2.0 XML from the previous transformation step
+              </p>
+            </div>
+          )}
           
           <div className="bg-gray-50 rounded-md p-4 mb-6">
             <h4 className="text-sm font-medium text-gray-700 mb-3">JSON-LD Options</h4>
@@ -310,7 +432,7 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
           
           <Button 
             className="w-full"
-            disabled={!jsonFile || jsonProcessing}
+            disabled={(useXmlResultAsInput ? !xmlResult : !jsonFile) || jsonProcessing}
             onClick={handleJsonTransform}
           >
             {jsonProcessing ? (
