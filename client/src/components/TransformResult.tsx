@@ -8,7 +8,7 @@ interface TransformResultProps {
   content: string;
   fileName: string;
   contentType: string;
-  language: 'xml' | 'json';
+  language: 'xml' | 'json' | 'text';
 }
 
 export default function TransformResult({ 

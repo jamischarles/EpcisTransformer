@@ -282,6 +282,89 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
     }
   };
   
+  // Perform transformation using the OpenEPCIS API
+  const handleOpenEpcisTransform = async () => {
+    if (!openEpcisXmlFile || !openEpcisXmlContent) {
+      toast({
+        title: 'Missing Input',
+        description: 'Please upload an XML file first',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setOpenEpcisProcessing(true);
+    const statusId = nanoid();
+    
+    let operationDescription = '';
+    switch (openEpcisMode) {
+      case 'xml12-to-xml20':
+        operationDescription = 'Converting EPCIS 1.2 XML to EPCIS 2.0 XML';
+        break;
+      case 'xml20-to-jsonld':
+        operationDescription = 'Converting EPCIS 2.0 XML to JSON-LD';
+        break;
+      case 'xml12-to-jsonld':
+        operationDescription = 'Directly converting EPCIS 1.2 XML to JSON-LD';
+        break;
+    }
+    
+    addStatusMessage({
+      id: statusId,
+      type: 'processing',
+      title: 'Processing via OpenEPCIS API',
+      description: operationDescription,
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      let result = '';
+      
+      // Perform the appropriate transformation based on the selected mode
+      switch (openEpcisMode) {
+        case 'xml12-to-xml20':
+          result = await convertToEpcis20XmlViaOpenEpcis(openEpcisXmlContent, xmlOptions);
+          break;
+          
+        case 'xml20-to-jsonld':
+          result = await convertToJsonLdViaOpenEpcis(openEpcisXmlContent, jsonOptions);
+          break;
+          
+        case 'xml12-to-jsonld':
+          result = await convertFrom12ToJsonLdViaOpenEpcis(openEpcisXmlContent, jsonOptions);
+          break;
+      }
+      
+      // Update status and set result
+      addStatusMessage({
+        id: statusId,
+        type: 'success',
+        title: 'OpenEPCIS transformation complete',
+        description: `Successfully processed via OpenEPCIS API`,
+        timestamp: new Date().toISOString()
+      });
+      
+      setOpenEpcisResult(result);
+    } catch (error) {
+      // Handle error
+      addStatusMessage({
+        id: statusId,
+        type: 'error',
+        title: 'OpenEPCIS transformation failed',
+        description: (error as Error).message,
+        timestamp: new Date().toISOString()
+      });
+      
+      toast({
+        title: 'OpenEPCIS API Error',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
+    } finally {
+      setOpenEpcisProcessing(false);
+    }
+  };
+  
   // Helper function to read file as text
   const readFileAsText = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -534,6 +617,204 @@ export default function TabsContainer({ addStatusMessage }: TabsContainerProps) 
           )}
         </TabsContent>
         
+        {/* OpenEPCIS API Tab */}
+        <TabsContent value="openepcis" className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <CloudIcon className="w-5 h-5 inline-block mr-2" />
+            OpenEPCIS API Transformation
+          </h3>
+          
+          <div className="mb-6">
+            {openEpcisApiStatus === 'loading' ? (
+              <Alert>
+                <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
+                <AlertTitle>Checking connection to OpenEPCIS API...</AlertTitle>
+                <AlertDescription>
+                  Verifying connection to OpenEPCIS API endpoints at tools.openepcis.io
+                </AlertDescription>
+              </Alert>
+            ) : openEpcisApiStatus === 'connected' ? (
+              <Alert className="bg-green-50 border-green-200">
+                <WifiIcon className="h-4 w-4 text-green-500 mr-2" />
+                <AlertTitle className="text-green-700">Connected to OpenEPCIS API</AlertTitle>
+                <AlertDescription className="text-green-600">
+                  Successfully connected to OpenEPCIS API. You can use the remote transformation capabilities.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="bg-amber-50 border-amber-200">
+                <WifiOffIcon className="h-4 w-4 text-amber-500 mr-2" />
+                <AlertTitle className="text-amber-700">OpenEPCIS API Unavailable</AlertTitle>
+                <AlertDescription className="text-amber-600">
+                  Could not connect to OpenEPCIS API. The application will fall back to local implementation.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          
+          <div className="bg-gray-50 rounded-md p-4 mb-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Transformation Mode</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div 
+                className={`cursor-pointer rounded-md p-3 border ${openEpcisMode === 'xml12-to-xml20' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => setOpenEpcisMode('xml12-to-xml20')}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">EPCIS 1.2 to 2.0 XML</span>
+                  {openEpcisMode === 'xml12-to-xml20' && (
+                    <Badge variant="default" className="text-xs">Selected</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-600">
+                  Converts EPCIS 1.2 XML documents to the newer EPCIS 2.0 format
+                </p>
+              </div>
+              
+              <div 
+                className={`cursor-pointer rounded-md p-3 border ${openEpcisMode === 'xml20-to-jsonld' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => setOpenEpcisMode('xml20-to-jsonld')}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">EPCIS 2.0 to JSON-LD</span>
+                  {openEpcisMode === 'xml20-to-jsonld' && (
+                    <Badge variant="default" className="text-xs">Selected</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-600">
+                  Converts EPCIS 2.0 XML documents to JSON-LD format
+                </p>
+              </div>
+              
+              <div 
+                className={`cursor-pointer rounded-md p-3 border ${openEpcisMode === 'xml12-to-jsonld' 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => setOpenEpcisMode('xml12-to-jsonld')}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">EPCIS 1.2 to JSON-LD</span>
+                  {openEpcisMode === 'xml12-to-jsonld' && (
+                    <Badge variant="default" className="text-xs">Selected</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-600">
+                  Direct conversion from EPCIS 1.2 XML to JSON-LD in one step
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <FileUploader 
+            onFileSelect={handleOpenEpcisFileSelect}
+            accept=".xml"
+            title={`Upload ${openEpcisMode === 'xml20-to-jsonld' ? 'EPCIS 2.0' : 'EPCIS 1.2'} XML File`}
+            description={`File should be a valid ${openEpcisMode === 'xml20-to-jsonld' ? 'EPCIS 2.0' : 'EPCIS 1.2'} XML document`}
+          />
+          
+          {(openEpcisMode === 'xml12-to-xml20' || openEpcisMode === 'xml12-to-jsonld') && (
+            <div className="bg-gray-50 rounded-md p-4 mb-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">XML Transformation Options</h4>
+              <div className="flex items-center mb-2">
+                <Checkbox 
+                  id="openepcis-validate-xml" 
+                  checked={xmlOptions.validateXml}
+                  onCheckedChange={(checked) => 
+                    setXmlOptions({...xmlOptions, validateXml: checked as boolean})
+                  }
+                />
+                <Label htmlFor="openepcis-validate-xml" className="ml-2 text-sm text-gray-700">
+                  Validate XML before transformation
+                </Label>
+              </div>
+              <div className="flex items-center">
+                <Checkbox 
+                  id="openepcis-preserve-comments" 
+                  checked={xmlOptions.preserveComments}
+                  onCheckedChange={(checked) => 
+                    setXmlOptions({...xmlOptions, preserveComments: checked as boolean})
+                  }
+                />
+                <Label htmlFor="openepcis-preserve-comments" className="ml-2 text-sm text-gray-700">
+                  Preserve XML comments
+                </Label>
+              </div>
+            </div>
+          )}
+          
+          {(openEpcisMode === 'xml20-to-jsonld' || openEpcisMode === 'xml12-to-jsonld') && (
+            <div className="bg-gray-50 rounded-md p-4 mb-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">JSON-LD Options</h4>
+              <div className="flex items-center mb-2">
+                <Checkbox 
+                  id="openepcis-pretty-json" 
+                  checked={jsonOptions.prettyPrint}
+                  onCheckedChange={(checked) => 
+                    setJsonOptions({...jsonOptions, prettyPrint: checked as boolean})
+                  }
+                />
+                <Label htmlFor="openepcis-pretty-json" className="ml-2 text-sm text-gray-700">
+                  Pretty-print JSON output
+                </Label>
+              </div>
+              <div className="flex items-center">
+                <Checkbox 
+                  id="openepcis-include-context" 
+                  checked={jsonOptions.includeContext}
+                  onCheckedChange={(checked) => 
+                    setJsonOptions({...jsonOptions, includeContext: checked as boolean})
+                  }
+                />
+                <Label htmlFor="openepcis-include-context" className="ml-2 text-sm text-gray-700">
+                  Include JSON-LD @context
+                </Label>
+              </div>
+            </div>
+          )}
+          
+          <Button 
+            className="w-full"
+            disabled={!openEpcisXmlFile || openEpcisProcessing || openEpcisApiStatus === 'loading'}
+            onClick={handleOpenEpcisTransform}
+          >
+            {openEpcisProcessing ? (
+              <>
+                <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" />
+                Processing via OpenEPCIS API...
+              </>
+            ) : (
+              <>
+                <CloudIcon className="mr-2 h-4 w-4" />
+                Transform using OpenEPCIS API
+              </>
+            )}
+          </Button>
+          
+          {openEpcisResult && (
+            <div className="mt-6">
+              <TransformResult 
+                content={openEpcisResult} 
+                fileName={
+                  openEpcisMode === 'xml12-to-xml20' ? 'epcis20.xml' : 
+                  (openEpcisMode === 'xml20-to-jsonld' || openEpcisMode === 'xml12-to-jsonld') ? 'epcis.jsonld' :
+                  'result.txt'
+                } 
+                contentType={
+                  openEpcisMode === 'xml12-to-xml20' ? 'application/xml' : 
+                  (openEpcisMode === 'xml20-to-jsonld' || openEpcisMode === 'xml12-to-jsonld') ? 'application/ld+json' :
+                  'text/plain'
+                } 
+                language={
+                  openEpcisMode === 'xml12-to-xml20' ? 'xml' : 'json'
+                }
+              />
+            </div>
+          )}
+        </TabsContent>
+        
         {/* Module API Documentation Tab */}
         <TabsContent value="module" className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Node.js Module API Documentation</h3>
@@ -560,7 +841,7 @@ const jsonld = await epcisTransformer.convertToJsonLd(epcis20Xml);`}</code></pre
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">API Reference</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Core API Reference</h4>
               <div className="bg-gray-50 rounded-md p-4">
                 <h5 className="font-medium text-gray-800 mb-2">convertToEpcis20Xml(xml, options)</h5>
                 <p className="text-sm text-gray-600 mb-2">Converts EPCIS 1.2 XML to EPCIS 2.0 XML</p>
@@ -574,7 +855,7 @@ const jsonld = await epcisTransformer.convertToJsonLd(epcis20Xml);`}</code></pre
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Available Options</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Transformation Options</h4>
               <div className="bg-gray-50 rounded-md p-4">
                 <h5 className="font-medium text-gray-800 mb-2">convertToJsonLd(xml, options)</h5>
                 <p className="text-sm text-gray-600 mb-2">Transforms EPCIS 2.0 XML to JSON-LD</p>
@@ -585,6 +866,54 @@ const jsonld = await epcisTransformer.convertToJsonLd(epcis20Xml);`}</code></pre
                 </ul>
                 <h6 className="text-xs font-medium text-gray-700 mt-3 mb-1">Returns:</h6>
                 <p className="text-xs text-gray-600">Promise that resolves to JSON-LD string or object</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              <CloudIcon className="w-4 h-4 inline-block mr-1" />
+              OpenEPCIS API Integration
+            </h4>
+            <div className="bg-gray-800 rounded-md p-4 mb-4">
+              <pre className="text-gray-200 text-sm"><code>{`const { openEpcisClient } = require('epcis-transformer');
+
+// Convert EPCIS 1.2 XML to EPCIS 2.0 XML using OpenEPCIS API
+const epcis20Xml = await openEpcisClient.convertToEpcis20Xml(epcis12XmlString);
+
+// Transform EPCIS 2.0 XML to JSON-LD using OpenEPCIS API
+const jsonld = await openEpcisClient.convertToJsonLd(epcis20Xml);
+
+// Direct conversion from EPCIS 1.2 XML to JSON-LD
+const jsonldResult = await openEpcisClient.convertFrom12ToJsonLd(epcis12XmlString);
+
+// Test if OpenEPCIS API is accessible
+const isConnected = await openEpcisClient.testConnection();`}</code></pre>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="bg-gray-50 rounded-md p-4">
+                  <h5 className="font-medium text-gray-800 mb-2">OpenEPCIS API Methods</h5>
+                  <p className="text-sm text-gray-600 mb-2">Access to OpenEPCIS API endpoints (tools.openepcis.io)</p>
+                  <ul className="text-xs text-gray-600 list-disc list-inside">
+                    <li><code>convertToEpcis20Xml(xml, options)</code></li>
+                    <li><code>convertToJsonLd(xml, options)</code></li>
+                    <li><code>convertFrom12ToJsonLd(xml, options)</code></li>
+                    <li><code>testConnection()</code></li>
+                  </ul>
+                </div>
+              </div>
+              <div>
+                <div className="bg-gray-50 rounded-md p-4">
+                  <h5 className="font-medium text-gray-800 mb-2">Command Line Usage</h5>
+                  <p className="text-sm text-gray-600 mb-2">Use the EPCIS CLI tool to transform files</p>
+                  <div className="text-xs text-gray-600">
+                    <code>./epcis-cli.sh convert-to-epcis20 input.xml --remote</code><br/>
+                    <code>./epcis-cli.sh convert-to-jsonld input.xml --remote</code><br/>
+                    <code>./epcis-cli.sh convert-from-12-to-jsonld input.xml --remote</code>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
