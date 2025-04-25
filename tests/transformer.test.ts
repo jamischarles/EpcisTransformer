@@ -101,10 +101,6 @@ describe('EPCIS Transformer Tests', () => {
         const resultJson = JSON.parse(result);
         const expectedJson = JSON.parse(expectedOutput);
         
-        // Debug output to see the structures
-        console.log('Result JSON structure:', JSON.stringify(resultJson, null, 2).slice(0, 300));
-        console.log('Expected JSON structure:', JSON.stringify(expectedJson, null, 2).slice(0, 300));
-        
         // Check for key JSON-LD elements
         expect(resultJson['@context']).toBeDefined();
         expect(expectedJson['@context']).toBeDefined();
