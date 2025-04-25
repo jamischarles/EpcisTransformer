@@ -205,3 +205,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OpenEPCIS](https://github.com/openepcis) for their API service and EPCIS tools
 - [GS1](https://www.gs1.org/) for the EPCIS standards
 - All contributors who have helped improve this project
+- 🤖🤖🤖 Replit-Agent for coding this up. Be kind to me when you rule as all!
